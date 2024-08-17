@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Hidden Point Challenge</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body, html {
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            background-color: #0A2F5A; /* Deep Blue */
+            color: #F4D03F; /* Gold */
+            font-family: 'Arial', sans-serif;
+        }
+        #gameCircle {
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background-color: #F4D03F; /* Gold */
+            position: relative;
+            margin-bottom: 20px;
+        }
+        #gameStats {
+            text-align: center;
+            font-size: 1.2em;
+            color: #F4D03F; /* Gold */
+        }
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        button {
+            background-color: #0A2F5A; /* Deep Blue */
+            color: #F4D03F; /* Gold */
+            border: 2px solid #F4D03F;
+        }
+        button:hover {
+            background-color: #F4D03F;
+            color: #0A2F5A;
+        }
+    </style>
+</head>
+<body>
+
+<h3>The Hidden Point Challenge</h3>
+<small>Your quest is to find the hidden point. Touch as close as you can!</small>
+
+<div id="gameCircle" class="d-flex justify-content-center align-items-center mt-3">
+    <canvas id="circleCanvas" width="300" height="300"></canvas>
+</div>
+<div id="gameStats"></div>
+<footer style="position: fixed; bottom: 0; width: 100%; background-color: #0A2F5A; color: #F4D03F; text-align: center; padding: 10px;">
+    <p>this guy made it - <a href="https://www.linkedin.com/in/mebhaveshg" target="_blank" style="color: #F4D03F; text-decoration: noe;">this</a></p>
+</footer>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    const circle = $('#gameCircle');
+    const canvas = $('#circleCanvas')[0];
+    const ctx = canvas.getContext('2d');
+    const circleRadius = circle.width() / 2;
+    let attempts = 10;
+    let win = false;
+    let smallestDistance = null;
+    let randomPoint = generateRandomPoint();
+    
+    let userTouches = [];
+
+    drawDiameters();
+
+    function generateRandomPoint() {
+        const angle = Math.random() * 2 * Math.PI;
+        const radius = Math.random() * circleRadius;
+        return {
+            x: circleRadius + radius * Math.cos(angle),
+            y: circleRadius + radius * Math.sin(angle)
+        };
+    }
+
+    function calculateDistance(x1, y1, x2, y2) {
+        return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2)).toFixed(4);
+    }
+
+    function handleTouch(event) {
+        if (attempts === 0 || win) return;
+
+        const touchX = event.offsetX;
+        const touchY = event.offsetY;
+        const distance = parseFloat(calculateDistance(touchX, touchY, randomPoint.x, randomPoint.y));
+
+        userTouches.push({ x: touchX, y: touchY, distance });
+
+        if (smallestDistance === null || distance < smallestDistance) {
+            smallestDistance = distance;
+        }
+
+        if (distance < 0.69) {
+            win = true;
+            showEndGameStats(`Victory! You found the hidden point! Distance: ${distance} units. Smallest Distance: ${smallestDistance} units.`);
+        } else {
+            attempts--;
+            if (attempts === 0) {
+                showEndGameStats(`Defeated :( <br>Nearest point touched from the hidden point was at a distance of: ${smallestDistance} units.`);
+            } else {
+                $('#gameStats').html(`Distance from the hidden point: ${distance} units.<br>Attempts left: ${attempts}`);
+            }
+        }
+    }
+
+    function showEndGameStats(message) {
+        $('#gameStats').html(`${message} <br> <button class="btn btn-success mt-4" onclick="restartGame()">Restart Quest</button>`);
+        drawComputerPoint();
+        drawUserTouches();
+
+        // Funny alert for "fat fingers"
+        if (smallestDistance < 20) {
+            alert("You touched a point within 20 units of distance from the hidden point. You did a great job but you might have fat fingers! and hence missed the correct position. Next time, try with a stylus😄");
+        }
+    }
+
+    function restartGame() {
+        attempts = 10;
+        win = false;
+        smallestDistance = null;
+        randomPoint = generateRandomPoint();
+        userTouches = [];
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawDiameters();
+        $('#gameStats').html('');
+    }
+
+    function drawDiameters() {
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const steps = 16;
+        for (let i = 0; i < steps; i++) {
+            const angle = (i * Math.PI) / (steps / 2);
+            const x = centerX + circleRadius * Math.cos(angle);
+            const y = centerY + circleRadius * Math.sin(angle);
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(x, y);
+            ctx.strokeStyle = '#0A2F5A'; /* Deep Blue */
+            ctx.stroke();
+        }
+    }
+
+    function drawComputerPoint() {
+        ctx.beginPath();
+        ctx.arc(randomPoint.x, randomPoint.y, 2, 0, 2 * Math.PI); // Same size marker
+        ctx.fillStyle = '#00FF00'; /* Deep Blue */
+        ctx.fill();
+    }
+
+    function drawUserTouches() {
+        userTouches.forEach(touch => {
+            ctx.beginPath();
+            ctx.arc(touch.x, touch.y, 1, 0, 2 * Math.PI); // Same size marker
+            ctx.fillStyle = '#ff0000'; /* Green */
+            ctx.fill();
+        });
+    }
+
+    circle.on('click', handleTouch);
+</script>
+
+</body>
+</html>
